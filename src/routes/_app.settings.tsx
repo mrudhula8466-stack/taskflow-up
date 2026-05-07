@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { adminExists } from "@/server/team.functions";
-import { claimInitialAdmin } from "@/server/roles.functions";
+import { adminExists } from "@/server-fns/team.functions";
+import { claimInitialAdmin } from "@/server-fns/roles.functions";
 
 export const Route = createFileRoute("/_app/settings")({ component: SettingsPage });
 
