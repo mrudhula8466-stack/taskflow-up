@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
-import { listTeamMembers } from "@/server/team.functions";
-import { setAdminRole } from "@/server/roles.functions";
+import { listTeamMembers } from "@/server-fns/team.functions";
+import { setAdminRole } from "@/server-fns/roles.functions";
 
 export const Route = createFileRoute("/_app/team")({ component: TeamPage });
 
