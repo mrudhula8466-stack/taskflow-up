@@ -1,34 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
+import { listTeamMembers } from "@/server/team.functions";
+import { setAdminRole } from "@/server/roles.functions";
 
 export const Route = createFileRoute("/_app/team")({ component: TeamPage });
 
 interface Member { id: string; name: string; created_at: string; roles: ("admin"|"member")[]; }
 
 function TeamPage() {
-  const { role, user } = useAuth();
+  const { role, user, refreshRole } = useAuth();
   const isAdmin = role === "admin";
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,name,created_at"),
-      supabase.from("user_roles").select("user_id,role"),
-    ]);
-    const m: Member[] = (profs ?? []).map(p => ({
-      ...p,
-      roles: (roles ?? []).filter(r => r.user_id === p.id).map(r => r.role as "admin"|"member"),
-    }));
-    setMembers(m);
-    setLoading(false);
+    try {
+      const data = await listTeamMembers();
+      setMembers(data as Member[]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to load team");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -36,15 +35,14 @@ function TeamPage() {
     if (uid === user?.id && isCurrentlyAdmin) {
       if (!confirm("Remove your own admin role?")) return;
     }
-    if (isCurrentlyAdmin) {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", "admin");
-      if (error) return toast.error(error.message);
-    } else {
-      const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: "admin" });
-      if (error) return toast.error(error.message);
+    try {
+      await setAdminRole({ data: { targetUserId: uid, makeAdmin: !isCurrentlyAdmin } });
+      toast.success("Role updated");
+      if (uid === user?.id) await refreshRole();
+      load();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to update role");
     }
-    toast.success("Role updated");
-    load();
   };
 
   return (
