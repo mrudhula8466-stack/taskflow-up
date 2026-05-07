@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Returns all team members with their roles. Authenticated users only.
 export const listTeamMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: profs, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id,name,created_at"),
       supabaseAdmin.from("user_roles").select("user_id,role"),
@@ -24,6 +24,7 @@ export const listTeamMembers = createServerFn({ method: "GET" })
 export const adminExists = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { count, error } = await supabaseAdmin
       .from("user_roles")
       .select("*", { count: "exact", head: true })
