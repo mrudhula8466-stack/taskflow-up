@@ -57,7 +57,7 @@ function SignupPage() {
         <Card className="w-full max-w-md shadow-elegant">
           <CardHeader>
             <CardTitle className="text-2xl">Create your account</CardTitle>
-            <CardDescription>You'll join as a member. The first user can be promoted to admin in settings.</CardDescription>
+            <CardDescription>You'll join as an admin and can start creating projects right away.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-4">
