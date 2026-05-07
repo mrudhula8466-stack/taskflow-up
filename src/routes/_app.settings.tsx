@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { adminExists } from "@/server/team.functions";
+import { claimInitialAdmin } from "@/server/roles.functions";
 
 export const Route = createFileRoute("/_app/settings")({ component: SettingsPage });
 
@@ -19,15 +21,19 @@ function SettingsPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [adminCount, setAdminCount] = useState<number | null>(null);
+  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
       setName(data?.name ?? "");
-      const { count } = await supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin");
-      setAdminCount(count ?? 0);
+      try {
+        const r = await adminExists();
+        setHasAdmin(r.exists);
+      } catch {
+        setHasAdmin(true);
+      }
       setLoading(false);
     })();
   }, [user]);
@@ -44,11 +50,14 @@ function SettingsPage() {
 
   const claimAdmin = async () => {
     if (!user) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id: user.id, role: "admin" });
-    if (error) return toast.error(error.message);
-    toast.success("You are now an admin");
-    await refreshRole();
-    setAdminCount((adminCount ?? 0) + 1);
+    try {
+      await claimInitialAdmin();
+      toast.success("You are now an admin");
+      await refreshRole();
+      setHasAdmin(true);
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to claim admin");
+    }
   };
 
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary"/></div>;
@@ -76,7 +85,7 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
-      {role !== "admin" && adminCount === 0 && (
+      {role !== "admin" && hasAdmin === false && (
         <Card className="shadow-card border-primary/40">
           <CardHeader><CardTitle>Claim admin</CardTitle></CardHeader>
           <CardContent className="space-y-3">
